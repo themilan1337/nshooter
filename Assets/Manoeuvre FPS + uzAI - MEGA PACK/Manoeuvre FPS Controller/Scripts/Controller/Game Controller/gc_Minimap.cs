@@ -23,18 +23,18 @@ namespace Manoeuvre
         [HideInInspector]
         public List<GameObject> AllIcons = new List<GameObject>();
 
+        private void Start()
+        {
+            AttachMinimapIcon();
+
+        }
+
         // Use this for initialization
         void Awake()
         {
             Instance = this;
             mainCamera = Camera.main.transform ;
             minimapCamera = GameObject.Find("MinimapCamera").GetComponent<Camera>();
-
-        }
-
-        private void Start()
-        {
-            AttachMinimapIcon();
 
         }
 

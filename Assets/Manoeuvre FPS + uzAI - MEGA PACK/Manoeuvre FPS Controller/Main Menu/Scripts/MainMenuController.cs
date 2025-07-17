@@ -30,7 +30,7 @@ namespace Manoeuvre
         public string LoadMenu_CloseAnimation;
 
         [Space]
-        public string SceneSelectName;
+        public string SceneSelectName; // Эта переменная больше не будет использоваться для кнопки "Начать игру"
         public string ShopSelectName;
 
         [Space]
@@ -49,7 +49,6 @@ namespace Manoeuvre
             else
             {
                 GameObject _fader = GameObject.Instantiate(Resources.Load("Fader")) as GameObject;
-
                 StartCoroutine(MainMenuFader.Instance.Fade(0, 1f));
             }
 
@@ -68,20 +67,19 @@ namespace Manoeuvre
                 //Cursor.lockState = CursorLockMode.Locked;
                 //Cursor.lockState = CursorLockMode.Confined;
                 Cursor.visible = false;
-
             }
             else
             {
                 //Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
-
             }
         }
 
         public void SceneSelect()
         {
-            //Fade In Scene
-            StartCoroutine(MainMenuFader.Instance.FadeToScene(1f, SceneSelectName));
+            // --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
+            // Вместо переменной SceneSelectName, мы напрямую указываем название сцены "Game".
+            StartCoroutine(MainMenuFader.Instance.FadeToScene(1f, "Game"));
 
             //play click sound
             if (MainMenuAudioManager.Instance)
@@ -148,7 +146,6 @@ namespace Manoeuvre
                 case "Load Slot":
                     ButtonInfoText.text = LoadSlotBtnHoverText;
                     break;
-
             }
 
             //play hover sound
@@ -169,7 +166,6 @@ namespace Manoeuvre
             //play click sound
             if (MainMenuAudioManager.Instance)
                 MainMenuAudioManager.Instance.PlayAudioClip(ButtonClickSFX);
-
         }
 
         /// <summary>
@@ -185,7 +181,6 @@ namespace Manoeuvre
             //play click sound
             if (MainMenuAudioManager.Instance)
                 MainMenuAudioManager.Instance.PlayAudioClip(ButtonClickSFX);
-
         }
 
         public void SetInputButton(GameObject Btn)
