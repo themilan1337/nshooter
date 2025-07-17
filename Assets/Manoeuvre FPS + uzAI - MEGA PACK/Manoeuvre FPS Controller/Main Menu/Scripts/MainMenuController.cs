@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement; // <<< ДОБАВЛЕНО: Необходимо для управления сценами
 
 namespace Manoeuvre
 {
@@ -74,12 +75,40 @@ namespace Manoeuvre
                 Cursor.visible = true;
             }
         }
+        
+        // =========================================================================
+        // <<< ВАШ НОВЫЙ МЕТОД ДЛЯ ЗАПУСКА ИГРЫ ЧЕРЕЗ ЭКРАН ЗАГРУЗКИ >>>
+        // =========================================================================
+        public void StartGameWithLoadingScreen()
+        {
+            // 1. Указываем скрипту загрузки, какую сцену нужно будет загрузить в итоге.
+            //    Я взял имя "CutSceneInitial" из вашего старого метода SceneSelect().
+            //    Если ваша основная игровая сцена называется по-другому, измените здесь имя.
+            LoadingScreenController.sceneToLoad = "CutSceneInitial"; // <<< ИЗМЕНИТЕ, ЕСЛИ НУЖНО
 
+            // 2. Вместо прямой загрузки игровой сцены, мы используем ваш фейдер,
+            //    чтобы плавно перейти на сцену загрузки "LoadingScene".
+            if (MainMenuFader.Instance != null)
+            {
+                StartCoroutine(MainMenuFader.Instance.FadeToScene(1f, "LoadingScene"));
+            }
+            else
+            {
+                // Запасной вариант, если фейдер не найден
+                SceneManager.LoadScene("LoadingScene");
+            }
+            
+            // Воспроизводим звук клика, как и в других ваших методах
+            if (MainMenuAudioManager.Instance)
+                MainMenuAudioManager.Instance.PlayAudioClip(ButtonClickSFX);
+        }
+        
+        // --- Старый метод для примера, его можно удалить или оставить ---
         public void SceneSelect()
         {
-            // --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
-            // Вместо переменной SceneSelectName, мы напрямую указываем название сцены "Game".
-            StartCoroutine(MainMenuFader.Instance.FadeToScene(1f, "Game"));
+            // Этот метод теперь можно считать устаревшим для кнопки "Старт".
+            // Мы используем новый метод StartGameWithLoadingScreen()
+            StartCoroutine(MainMenuFader.Instance.FadeToScene(1f, "CutSceneInitial"));
 
             //play click sound
             if (MainMenuAudioManager.Instance)
