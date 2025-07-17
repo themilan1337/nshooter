@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: 392af907aee837e408be0b693470f01d
+timeCreated: 1535355415
+licenseType: Store
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: Spectrashell
+  fontNames:
+  - Spectrashell
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

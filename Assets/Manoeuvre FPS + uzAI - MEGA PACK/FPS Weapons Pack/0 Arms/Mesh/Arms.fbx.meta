@@ -1,0 +1,222 @@
+fileFormatVersion: 2
+guid: 25dd7110a8e3a734291a8985a862a2b4
+timeCreated: 1525193223
+licenseType: Store
+ModelImporter:
+  serializedVersion: 19
+  fileIDToRecycleName:
+    100000: bn_Ammo_Clip.R
+    100002: bn_Ammo_Clip.R_end
+    100004: bn_Bolt.001.L
+    100006: bn_Bolt.001.L_end
+    100008: bn_Bolt.R
+    100010: bn_Gun_Root.R
+    100012: bn_Muzzle.L
+    100014: bn_Muzzle.L_end
+    100016: bn_Trigger.R
+    100018: bn_Trigger.R_end
+    100020: chest.R
+    100022: chest1.R
+    100024: f_index.01.R
+    100026: f_index.01.R.001.L
+    100028: f_index.02.R
+    100030: f_index.02.R.001.L
+    100032: f_index.03.R
+    100034: f_index.03.R.001.L
+    100036: f_index.03.R.001.L_end
+    100038: f_index.03.R_end
+    100040: f_middle.01.R
+    100042: f_middle.01.R.001.L
+    100044: f_middle.02.R
+    100046: f_middle.02.R.001.L
+    100048: f_middle.03.R
+    100050: f_middle.03.R.001.L
+    100052: f_middle.03.R.001.L_end
+    100054: f_middle.03.R_end
+    100056: f_pinky.01.R
+    100058: f_pinky.01.R.001.L
+    100060: f_pinky.02.R
+    100062: f_pinky.02.R.001.L
+    100064: f_pinky.03.R
+    100066: f_pinky.03.R.001.L
+    100068: f_pinky.03.R.001.L_end
+    100070: f_pinky.03.R_end
+    100072: f_ring.01.R
+    100074: f_ring.01.R.001.L
+    100076: f_ring.02.R
+    100078: f_ring.02.R.001.L
+    100080: f_ring.03.R
+    100082: f_ring.03.R.001.L
+    100084: f_ring.03.R.001.L_end
+    100086: f_ring.03.R_end
+    100088: forearm.R
+    100090: forearm.R.001.L
+    100092: //RootNode
+    100094: GunAttach.001.L
+    100096: GunAttach.001.L_end
+    100098: GunAttach.R
+    100100: hand.R
+    100102: hand.R.001.L
+    100104: hand:Gloves.001
+    100106: head.R
+    100108: head.R_end
+    100110: hips.R
+    100112: neck.R
+    100114: shoulder.R
+    100116: shoulder.R.001.L
+    100118: spine.R
+    100120: T6
+    100122: thumb.01.R
+    100124: thumb.01.R.001.L
+    100126: thumb.02.R
+    100128: thumb.02.R.001.L
+    100130: thumb.03.R
+    100132: thumb.03.R.001.L
+    100134: thumb.03.R.001.L_end
+    100136: thumb.03.R_end
+    100138: upper_arm.R
+    100140: upper_arm.R.001.L
+    400000: bn_Ammo_Clip.R
+    400002: bn_Ammo_Clip.R_end
+    400004: bn_Bolt.001.L
+    400006: bn_Bolt.001.L_end
+    400008: bn_Bolt.R
+    400010: bn_Gun_Root.R
+    400012: bn_Muzzle.L
+    400014: bn_Muzzle.L_end
+    400016: bn_Trigger.R
+    400018: bn_Trigger.R_end
+    400020: chest.R
+    400022: chest1.R
+    400024: f_index.01.R
+    400026: f_index.01.R.001.L
+    400028: f_index.02.R
+    400030: f_index.02.R.001.L
+    400032: f_index.03.R
+    400034: f_index.03.R.001.L
+    400036: f_index.03.R.001.L_end
+    400038: f_index.03.R_end
+    400040: f_middle.01.R
+    400042: f_middle.01.R.001.L
+    400044: f_middle.02.R
+    400046: f_middle.02.R.001.L
+    400048: f_middle.03.R
+    400050: f_middle.03.R.001.L
+    400052: f_middle.03.R.001.L_end
+    400054: f_middle.03.R_end
+    400056: f_pinky.01.R
+    400058: f_pinky.01.R.001.L
+    400060: f_pinky.02.R
+    400062: f_pinky.02.R.001.L
+    400064: f_pinky.03.R
+    400066: f_pinky.03.R.001.L
+    400068: f_pinky.03.R.001.L_end
+    400070: f_pinky.03.R_end
+    400072: f_ring.01.R
+    400074: f_ring.01.R.001.L
+    400076: f_ring.02.R
+    400078: f_ring.02.R.001.L
+    400080: f_ring.03.R
+    400082: f_ring.03.R.001.L
+    400084: f_ring.03.R.001.L_end
+    400086: f_ring.03.R_end
+    400088: forearm.R
+    400090: forearm.R.001.L
+    400092: //RootNode
+    400094: GunAttach.001.L
+    400096: GunAttach.001.L_end
+    400098: GunAttach.R
+    400100: hand.R
+    400102: hand.R.001.L
+    400104: hand:Gloves.001
+    400106: head.R
+    400108: head.R_end
+    400110: hips.R
+    400112: neck.R
+    400114: shoulder.R
+    400116: shoulder.R.001.L
+    400118: spine.R
+    400120: T6
+    400122: thumb.01.R
+    400124: thumb.01.R.001.L
+    400126: thumb.02.R
+    400128: thumb.02.R.001.L
+    400130: thumb.03.R
+    400132: thumb.03.R.001.L
+    400134: thumb.03.R.001.L_end
+    400136: thumb.03.R_end
+    400138: upper_arm.R
+    400140: upper_arm.R.001.L
+    4300000: hand:Gloves.001
+    9500000: //RootNode
+    13700000: hand:Gloves.001
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
