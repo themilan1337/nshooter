@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 876b478616f46b240a4f9edb9ab1c091
+timeCreated: 1516708672
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 109348
+  packageName: Manoeuvre FPS FREE
+  packageVersion: 1.1
+  assetPath: Assets/Manoeuvre FPS Controller FREE/Resources/EditorContent/Controller/UICamera.prefab
+  uploadId: 250376
