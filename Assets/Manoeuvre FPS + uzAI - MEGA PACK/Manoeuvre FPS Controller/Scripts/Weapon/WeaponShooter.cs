@@ -288,8 +288,11 @@ namespace Manoeuvre
         /// </summary>
         private void OnDrawGizmos()
         {
-            Gizmos.color = Color.green;
-            Gizmos.DrawSphere(muzzleProperties.muzzleFlashLocation.position, 0.01f);
+            if (muzzleProperties != null && muzzleProperties.muzzleFlashLocation != null)
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawSphere(muzzleProperties.muzzleFlashLocation.position, 0.01f);
+            }
         }
 
     }
@@ -352,6 +355,29 @@ namespace Manoeuvre
         ParticleSystem flash;
 
         /// <summary>
+        /// Helper method to set the layer for a GameObject and all its children.
+        /// </summary>
+        void SetLayerRecursively(GameObject obj, int newLayer)
+        {
+            if (null == obj)
+            {
+                return;
+            }
+
+            obj.layer = newLayer;
+
+            foreach (Transform child in obj.transform)
+            {
+                if (null == child)
+                {
+                    continue;
+                }
+                SetLayerRecursively(child.gameObject, newLayer);
+            }
+        }
+
+
+        /// <summary>
         /// Spawns the muzzle flash as soon as called at the assigned location
         /// </summary>
         public void SpawnMuzzleFlash()
@@ -359,15 +385,33 @@ namespace Manoeuvre
             if (muzzleFlash == null || muzzleFlashLocation == null)
                 return;
 
-            flash = GameObject.Instantiate(muzzleFlash) as ParticleSystem;
-            flash.gameObject.layer = LayerMask.NameToLayer("Weapon");
+            flash = GameObject.Instantiate(muzzleFlash, muzzleFlashLocation.position, muzzleFlashLocation.rotation) as ParticleSystem;
+
+            // --- FIXED CODE ---
+            // Get the integer index for the "Weapon" layer.
+            int weaponLayer = LayerMask.NameToLayer("Weapon");
+
+            // LayerMask.NameToLayer returns -1 if the layer is not found.
+            // Attempting to set a GameObject's layer to -1 causes the error.
+            // We must check if the layer exists before assigning it.
+            if (weaponLayer != -1)
+            {
+                // Set the layer of the particle system and all its children recursively.
+                // This is often done to prevent the weapon's own muzzle flash from being
+                // rendered by the main camera, assuming the main camera culls the "Weapon" layer.
+                SetLayerRecursively(flash.gameObject, weaponLayer);
+            }
+            else
+            {
+                // If the layer doesn't exist, log a warning to the console to help the user.
+                // This is crucial for debugging project setup issues.
+                Debug.LogWarning("The 'Weapon' layer could not be found. Please add it in 'Edit -> Project Settings -> Tags and Layers' to ensure the muzzle flash renders correctly.");
+            }
+            // --- END OF FIX ---
+
             flash.transform.SetParent(muzzleFlashLocation);
             flash.transform.localPosition = Vector3.zero;
-
-            foreach(Transform t in flash.GetComponentInChildren<Transform>())
-            {
-                t.gameObject.layer = LayerMask.NameToLayer("Weapon");
-            }
+            flash.transform.localRotation = Quaternion.identity; // Good practice to reset rotation
         }
 
         public void PlayMuzzleFlash()
@@ -375,7 +419,6 @@ namespace Manoeuvre
             if (flash != null)
                 flash.Play();
         }
-
     }
 
     [System.Serializable]
@@ -578,7 +621,7 @@ namespace Manoeuvre
                 source.PlayOneShot(clip);
                 source.pitch = Random.Range(maxPitchVariation, minPitchVariation);
             }
-            else
+            else if (clip != null)
                 AudioSource.PlayClipAtPoint(clip, pos);
         }
     }   
