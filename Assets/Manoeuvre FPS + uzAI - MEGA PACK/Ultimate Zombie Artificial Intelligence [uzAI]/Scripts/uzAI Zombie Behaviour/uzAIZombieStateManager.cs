@@ -636,30 +636,24 @@ namespace uzAI
         /// </summary>
         public void Idle()
         {
-            //making sure the agent is STOPPED!
+            if (!_uzAIAgent || !_uzAIAgent.isOnNavMesh)
+                return;
+            
             _uzAIAgent.isStopped = true;
 
-            //set speed to 0
             _stateManager.Locomotion.walkAnimation = Mathf.Lerp(_stateManager.Locomotion.walkAnimation, 0, Time.deltaTime * idleTransitionDuration);
 
-            //set animation to Idle
             _animator.SetFloat("Vertical", _stateManager.Locomotion.walkAnimation);
 
-            //disable root motion
             _animator.applyRootMotion = false;
 
-            //clear chase target
             _stateManager.chaseBehaviour.currentChasingTargetTag = "";
             _stateManager.chaseBehaviour.targetPosition = null;
 
-            //if our timer is less then the Patrol Delay
             if (_stateManager._globalDelayTimer < _stateManager.patrolBehaviour.PatrolDelay)
-                _stateManager._globalDelayTimer += Time.deltaTime; // increment
+                _stateManager._globalDelayTimer += Time.deltaTime;
             else
-                return; // exit
-
-            //Debug.Log("Inside Idle State");
-            
+                return;
         }
 
     }
@@ -1006,64 +1000,77 @@ namespace uzAI
         /// <summary>
         /// Simply chases the Target Position
         /// </summary>
+        /// <summary>
+        /// Просто преследует целевую позицию (Target Position)
+        /// </summary>
         public void Chase()
         {
+            // Убеждаемся, что компонент NavMeshAgent существует
             if (!_uzAIAgent)
                 return;
 
+            // ----- ВАЖНОЕ ИСПРАВЛЕНИЕ -----
+            // Проверяем, активен ли агент и находится ли он на NavMesh.
+            // Это предотвратит ошибки "SetDestination" и "Resume", если зомби окажется вне сетки.
+            if (!_uzAIAgent.isOnNavMesh)
+                return;
+            // ----- КОНЕЦ ИСПРАВЛЕНИЯ -----
+
+            // Закомментировано в оригинальном коде, оставляем как есть
             ////if we are on an off mesh
             //if (_stateManager.offmeshBehaviour.isTraversing)
             //    return;
 
-            //if we got hit
+            // Если зомби получил урон
             if (_stateManager.currentZombieState == ZombieStates.Hit)
                 return;
 
-            //if we are not attacking
+            // Если зомби атакует
             if (_stateManager.currentZombieState == ZombieStates.Attacking)
                 return;
 
-            //if there's no target position
+            // Если нет цели для преследования
             if (!targetPosition)
                 return;
 
-            //if we are not already chasing the current target
+            // Если мы еще не движемся к текущей цели (чтобы не вызывать SetDestination в каждом кадре)
             if (_uzAIAgent.destination != targetPosition.position)
             {
-                //set it
+                // Устанавливаем точку назначения
                 _uzAIAgent.SetDestination(targetPosition.position);
             }
 
-            //if target position is Last known pos
-            //and we still have food transform left 
+            // Если цель - это последняя известная позиция игрока
+            // и у нас все еще есть информация об источнике еды
             if(targetPosition == lastPlayerPosition && _stateManager.eatingBehaviour.currentFoodSource != null)
             {
-                //make sure we have cleared the food thing
+                // Убеждаемся, что мы сбросили поведение, связанное с едой
                 _stateManager.eatingBehaviour.ExitEatBehaviour();
             }
 
-            //make sure agent isn't stopped
+            // Убеждаемся, что агент не остановлен и может двигаться
             _uzAIAgent.isStopped = false;
 
-            //we only calculate Angle
-            //only if we are not Turning
+            // Мы вычисляем угол поворота, только если зомби
+            // в данный момент не поворачивается на месте и не пересекает OffMeshLink
             if (!_animator.GetBool("ZombieIsTurning") && !_stateManager.offmeshBehaviour.isTraversing)
             {
                 float Angle = GetAngle(_stateManager.transform.forward, _uzAIAgent.desiredVelocity, _stateManager.transform.up);
-
+                
+                // Если угол больше порогового значения, включаем анимацию поворота на месте
                 if ((Angle > _stateManager.Locomotion.ChaseAngleThreshold || Angle < -_stateManager.Locomotion.ChaseAngleThreshold) && _stateManager.Locomotion.useTurnOnSpot)
                 {
                     int val = Mathf.Sign(Angle) > 0 ? 1 : -1;
                     _animator.SetInteger("ZombieTurn", val);
 
-                   // Debug.Log(Angle);
+                // Debug.Log(Angle);
                 }
                 else
                 {
-                    //lerp speed
+                    // Плавно изменяем скорость анимации до скорости погони
                     _stateManager.Locomotion.walkAnimation = Mathf.Lerp(_stateManager.Locomotion.walkAnimation, chaseAnimation, Time.deltaTime * 5);
 
-                    //set locomotion
+                    // Устанавливаем значение скорости для аниматора
                     _animator.SetFloat("Vertical", _stateManager.Locomotion.walkAnimation);
                 }
             }

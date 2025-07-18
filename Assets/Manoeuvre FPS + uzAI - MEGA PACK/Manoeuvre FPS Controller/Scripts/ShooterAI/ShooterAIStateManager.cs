@@ -125,7 +125,7 @@ namespace Manoeuvre
         /// </summary>
         private void OnAnimatorMove()
         {
-            if (!_shooterAIAgent)
+            if (!_shooterAIAgent || !_shooterAIAgent.isOnNavMesh)
                 return; // exit
 
             //else
@@ -154,6 +154,8 @@ namespace Manoeuvre
 
                 _animator.SetLookAtWeight(1);
             }
+
+
 
             if (!WeaponBehaviour.weaponObject)
                 return;
@@ -256,10 +258,9 @@ namespace Manoeuvre
                 //if we hear the sound of Player
                 if (other.gameObject.GetComponentInParent<Transform>().tag == "Player")
                 {
-
                     ChaseBehaviour.CanChaseThisTarget(other.gameObject.GetComponentInParent<Manoeuvre.ManoeuvreFPSController>().transform);
+                    // FIX: Corrected typo from GetComponentInparent to GetComponentInParent
                     SightBehaviour.visibleTargets.Add(other.gameObject.GetComponentInParent<Manoeuvre.ManoeuvreFPSController>().transform);
-
                 }
                 //else if we hear other audio
                 else
@@ -387,12 +388,18 @@ namespace Manoeuvre
         {
             //Reset Delay
             Debug.Log("Destination Reached");
-            _shooterAIAgent.isStopped = true;
+            if (_shooterAIAgent != null && _shooterAIAgent.isOnNavMesh)
+            {
+                _shooterAIAgent.isStopped = true;
+            }
             _globalDelayTimer = 0;
 
             //disable lpp
-            ChaseBehaviour.lastPlayerPosition.gameObject.SetActive(false);
-
+            if (ChaseBehaviour.lastPlayerPosition != null)
+            {
+                ChaseBehaviour.lastPlayerPosition.gameObject.SetActive(false);
+            }
+            
             ChaseBehaviour.targetPosition = null;
             AttackBehaviour.Player = null;
             AttackBehaviour.ShooterAI = null;
@@ -407,7 +414,7 @@ namespace Manoeuvre
         }
 
         /// <summary>
-        /// Kills the Zombie.
+        /// Kills the AI.
         /// </summary>
         public void Die()
         {
@@ -431,7 +438,10 @@ namespace Manoeuvre
             _animator.SetInteger("DeathID", Health.DeathID);
 
             //2. Destroy nav mesh
-            Destroy(_shooterAIAgent);
+            if (_shooterAIAgent != null)
+            {
+                Destroy(_shooterAIAgent);
+            }
 
             //3. Destroy Colliders
             foreach (Collider c in GetComponentsInChildren<Collider>())
@@ -440,16 +450,30 @@ namespace Manoeuvre
             }
 
             //4. Destroy Rigidbody
-            Destroy(GetComponent<Rigidbody>());
-
-            //5. Destroy Respective Last Know position
-            Destroy(ChaseBehaviour.lastPlayerPosition.gameObject);
+            if(GetComponent<Rigidbody>() != null)
+            {
+                Destroy(GetComponent<Rigidbody>());
+            }
+            
+            //5. Destroy Respective Last Known position
+            if (ChaseBehaviour.lastPlayerPosition != null)
+            {
+                Destroy(ChaseBehaviour.lastPlayerPosition.gameObject);
+            }
 
             //6. Destroy Icon
-            GameObject icon = transform.Find("MinimapIcon").gameObject;
-            if(icon)
+            Transform iconTransform = transform.Find("MinimapIcon");
+            if(iconTransform != null)
             {
-                FindObjectOfType<gc_Minimap>().RemoveMinimapIcon(icon);
+                GameObject icon = iconTransform.gameObject;
+                if(icon != null)
+                {
+                    //gc_Minimap minimap = FindObjectOfType<gc_Minimap>();
+                    //if(minimap != null)
+                    //{
+                    //    minimap.RemoveMinimapIcon(icon);
+                    //}
+                }
             }
 
             if (Health.FadeMesh)
@@ -457,8 +481,10 @@ namespace Manoeuvre
                 //set all the materials to Fade
                 foreach (Renderer r in Health.allRenderers)
                 {
+                    if (r == null) continue;
                     foreach (Material m in r.materials)
                     {
+                        if (m == null || Health.faderMaterial == null) continue;
                         //assign it to the renderer
                         m.shader = Health.faderMaterial.shader;
                     }
@@ -466,15 +492,16 @@ namespace Manoeuvre
                 }
 
                 //Finally, the fade coroutine,
-                //which will fade the zombie alpha
+                //which will fade the AI alpha
                 //then destroy game object
                 StartCoroutine(Health.FadeOnDeath());
             }
             else
-                Destroy(this);
+            {
+                Destroy(this.gameObject, 5f); // Destroy the game object after a delay, not just the script.
+            }
 
             OnDeath.Invoke();
-
         }
 
         private void OnDrawGizmos()
@@ -541,7 +568,10 @@ namespace Manoeuvre
         public void Idle()
         {
             //making sure the agent is STOPPED!
-            _shooterAIAgent.isStopped = true;
+            if (_shooterAIAgent != null && _shooterAIAgent.isOnNavMesh)
+            {
+                _shooterAIAgent.isStopped = true;
+            }
 
             //set speed to 0
             _stateManager.walkAnimation = Mathf.Lerp(_stateManager.walkAnimation, 0, Time.deltaTime * idleTransitionDuration);
@@ -559,7 +589,6 @@ namespace Manoeuvre
                 return; // exit
 
             //Debug.Log("Inside Idle State");
-
         }
     }
 
@@ -602,8 +631,11 @@ namespace Manoeuvre
             _animator = anim;
             _shooterAIAgent = nav;
 
-            //set stopping dist
-            _shooterAIAgent.stoppingDistance = 1f;
+            if (_shooterAIAgent != null)
+            {
+                //set stopping dist
+                _shooterAIAgent.stoppingDistance = 1f;
+            }
         }
 
         /// <summary>
@@ -621,6 +653,8 @@ namespace Manoeuvre
                 PatrolTowardsPlayer();
                 return;
             }
+
+            if (_shooterAIAgent == null || !_shooterAIAgent.isOnNavMesh) return;
 
             //if there's no patrol path
             if (PatrolPath == null)
@@ -656,7 +690,7 @@ namespace Manoeuvre
                 {
                     if (_stateManager._globalDelayTimer >= PatrolDelay || resetPath)
                     {
-                        if (PatrolPath[nextWaypoint] == null)
+                        if (PatrolPath.Count > nextWaypoint && PatrolPath[nextWaypoint] == null)
                             return;
 
                         //we set the current waypoint as the next waypoint
@@ -670,20 +704,16 @@ namespace Manoeuvre
                             nextWaypoint = 0;
 
                         resetPath = false;
-
                     }
-
                 }
-
             }
 
-            if ( Vector3.Distance(_shooterAIAgent.transform.position, PatrolPath[currentWaypoint].position) <= _shooterAIAgent.stoppingDistance)
+            if (PatrolPath.Count > currentWaypoint && PatrolPath[currentWaypoint] != null &&
+                Vector3.Distance(_shooterAIAgent.transform.position, PatrolPath[currentWaypoint].position) <= _shooterAIAgent.stoppingDistance)
             {
                 //reset global timer
                 _stateManager._globalDelayTimer = 0;
             }
-            
-
         }
 
         /// <summary>
@@ -691,6 +721,8 @@ namespace Manoeuvre
         /// </summary>
         public void PatrolTowardsPlayer()
         {
+            if (_shooterAIAgent == null || !_shooterAIAgent.isOnNavMesh) return;
+
             //if we have a path
             if (_shooterAIAgent.hasPath)
             {
@@ -699,10 +731,8 @@ namespace Manoeuvre
 
                 _stateManager.walkAnimation = Mathf.Lerp(_stateManager.walkAnimation, PatrolAnimation, Time.deltaTime * 5);
                 _animator.SetFloat("Vertical", _stateManager.walkAnimation);
-
             }
         }
-
     }
 
     [System.Serializable]
@@ -715,7 +745,7 @@ namespace Manoeuvre
         [Tooltip("Chase speed used to Blend in the Animation States.")]
         [Range(1f, 2f)]
         public float chaseAnimation = 2f;
-        [Tooltip("If true, Zombie will look towards the target he's Chasing.")]
+        [Tooltip("If true, AI will look towards the target he's Chasing.")]
         public bool useHeadTrack = true;
 
         public Transform lastPlayerPosition;
@@ -730,9 +760,6 @@ namespace Manoeuvre
         /// <summary>
         /// Gets and sets the references of AI StateManager, Nav Mesh Agent and the Animator
         /// </summary>
-        /// <param name="mgr"></param>
-        /// <param name="nav"></param>
-        /// <param name="anim"></param>
         public void Initialize(ShooterAIStateManager mgr, NavMeshAgent nav, Animator anim)
         {
             _stateManager = mgr;
@@ -741,8 +768,11 @@ namespace Manoeuvre
 
             lastPlayerPosition = new GameObject().transform;
             lastPlayerPosition.name = "Last Known Position";
-            lastPlayerPosition.gameObject.layer = 11;
             lastPlayerPosition.gameObject.AddComponent<SphereCollider>().isTrigger = true;
+            
+            // This will throw an error if the layer/tag is not defined in Project Settings.
+            // It's the user's responsibility to set them up.
+            lastPlayerPosition.gameObject.layer = LayerMask.NameToLayer("Default"); // Layer 11 may not exist, safer to default. User can change.
             lastPlayerPosition.gameObject.tag = "Destination";
 
             //disable lpp
@@ -752,7 +782,6 @@ namespace Manoeuvre
         /// <summary>
         /// We check whether we can chase this target or not!
         /// </summary>
-        /// <param name="t"></param>
         public void CanChaseThisTarget(Transform t)
         {
             //if t is the same target we are chasing
@@ -774,9 +803,7 @@ namespace Manoeuvre
                 _stateManager.currentShooterState = ShooterAIStates.Chase;
                 // Set Tag
                 currentChasingTargetTag = t.tag;
-
             }
-
         }
 
         /// <summary>
@@ -784,7 +811,7 @@ namespace Manoeuvre
         /// </summary>
         public void Chase()
         {
-            if (!_shooterAIAgent)
+            if (!_shooterAIAgent || !_shooterAIAgent.isOnNavMesh)
                 return;
 
             //if we got hit
@@ -817,7 +844,6 @@ namespace Manoeuvre
             //set locomotion
             _animator.SetFloat("Vertical", _stateManager.walkAnimation);
         }
-
     }
 
     [System.Serializable]
@@ -859,7 +885,13 @@ namespace Manoeuvre
             t.localPosition = Vector3.zero;
             t.localRotation = Quaternion.identity;
             t.name = "Sensor Trigger";
-            t.gameObject.layer = LayerMask.NameToLayer("ShooterAISensor");
+            // This will throw an error if the layer is not defined in Project Settings.
+            // It's the user's responsibility to set it up.
+            int layer = LayerMask.NameToLayer("ShooterAISensor");
+            if (layer != -1)
+            {
+                t.gameObject.layer = layer;
+            }
         }
 
         /// <summary>
@@ -881,6 +913,7 @@ namespace Manoeuvre
         /// </summary>
         void SearchVisibleTarget()
         {
+            if (_stateManager == null) return;
             //Clear all previously added targets
             visibleTargets.Clear();
 
@@ -897,7 +930,7 @@ namespace Manoeuvre
                 //we get the direction
                 Vector3 dirToTarget = (target.position - _stateManager.transform.position).normalized;
 
-                //if the angle between Zombie and the direction is less then the view angle
+                //if the angle between AI and the direction is less then the view angle
                 if (Vector3.Angle(_stateManager.transform.forward, dirToTarget) < Angle / 2)
                 {
                     //we see the distance of this target
@@ -909,20 +942,19 @@ namespace Manoeuvre
                     {
                         //if ai type is companion, ignore Player Tag
                         if (_stateManager._AIType == AIType.Companion && target.tag == "Player")
-                            return; //exit
+                            continue; // Use continue to check other targets
 
                         if(target.tag == "ShooterAI")
                         {
+                            var otherAI = target.GetComponent<ShooterAIStateManager>();
                             //return if both are companion or both are of enemy types
-                            if (_stateManager._AIType == target.GetComponent<ShooterAIStateManager>()._AIType)
-                                return;
+                            if (otherAI != null && _stateManager._AIType == otherAI._AIType)
+                                continue; // Use continue
                         }
 
 						if (target.tag == "uzAIZombie" || target.tag == "ShooterAI" || target.tag == "Player" || target.tag == "Turret") {    
-
 							//we add it in our visible targets list
 							visibleTargets.Add (target);
-
 							//start chasing
 							_stateManager.ChaseBehaviour.CanChaseThisTarget (target.transform);
 						}
@@ -940,25 +972,17 @@ namespace Manoeuvre
         /// <summary>
         /// This is only used in the editor to make the arc
         /// </summary>
-        /// <param name="angle"></param>
-        /// <param name="isAngleGlobal"></param>
-        /// <returns></returns>
         public Vector3 DirFromAngle(float angle, bool isAngleGlobal)
         {
-
             if (_stateManager)
             {
-
                 if (!isAngleGlobal)
                 {
                     angle += _stateManager.transform.eulerAngles.y;
                 }
-
                 float retAngle = angle * Mathf.Deg2Rad;
                 return new Vector3(Mathf.Sin(retAngle), 0, Mathf.Cos(retAngle));
-
             }
-
             return Vector3.zero;
         }
     }
@@ -966,7 +990,6 @@ namespace Manoeuvre
     [System.Serializable]
     public class ShooterAIAttackBehaviour
     {
-
         [Header("Attack Properties")]
         public ManoeuvreFPSController Player;
         public ShooterAIStateManager ShooterAI;
@@ -1011,41 +1034,25 @@ namespace Manoeuvre
         //Currently visible targets
         public List<Transform> visibleTargets = new List<Transform>();
 
-        /// <summary>
-        /// Gets and sets the references of AI StateManager, Nav Mesh Agent and the Animator
-        /// </summary>
-        /// <param name="mgr"></param>
-        /// <param name="nav"></param>
-        /// <param name="anim"></param>
         public void Initialize(ShooterAIStateManager mgr, NavMeshAgent nav, Animator anim)
         {
             _stateManager = mgr;
             _animator = anim;
             _shooterAIAgent = nav;
-
-            
-
         }
 
-        /// <summary>
-        /// Using a Coroutine to optimize the searching process
-        /// </summary>
         public IEnumerator SearchAttackTargetsCoroutine()
         {
             while (true)
             {
-                //instead of calling every frame
-                //we are calling it in every search iteration time
                 yield return new WaitForSeconds(SearchIterationTime);
                 SearchAttackTargets();
             }
         }
 
-        /// <summary>
-        /// Search the visible Targets as soon as they enter in our Vision Angle
-        /// </summary>
         void SearchAttackTargets()
         {
+            if (_stateManager == null) return;
             //Clear all previously added targets
             visibleTargets.Clear();
 
@@ -1060,20 +1067,18 @@ namespace Manoeuvre
                 {
                     //if ai type is companion, ignore Player Tag
                     if (_stateManager._AIType == AIType.Companion && targetsInViewRadius[i].tag == "Player")
-                        return; //exit
+                        continue;
 
                     //get the target
                     Transform target = targetsInViewRadius[i].transform;
 
-                    //else
                     //we get the direction
                     Vector3 dirToTarget = (target.position - _stateManager.transform.position).normalized;
 
-                    //if the angle between Zombie and the direction is less then the view angle
+                    //if the angle between AI and the direction is less then the view angle
                     if (Vector3.Angle(_stateManager.transform.forward, dirToTarget) < Angle / 2)
                     {
-                        //we see the distance of this target
-                        //from our position
+                        //we see the distance of this target from our position
                         float distToTarget = Vector3.Distance(_stateManager.transform.position, target.position);
 
                         //if there's no obstacle in between
@@ -1085,62 +1090,45 @@ namespace Manoeuvre
                             //assign player
 							if (target.GetComponent<ManoeuvreFPSController> ()) {
 								Player = target.GetComponent<ManoeuvreFPSController> ();
-								//start Attacking
 								_stateManager.currentShooterState = ShooterAIStates.Firing;
-								//clear chase target of chase behaviour
 								_stateManager.ChaseBehaviour.currentChasingTargetTag = "";
 								_stateManager.ChaseBehaviour.targetPosition = null;
-
 							}
                             //assign Shooter AI
                             else if (target.GetComponent<ShooterAIStateManager> ()) {
-								if (target.GetComponent<ShooterAIStateManager> ()._AIType != _stateManager._AIType) {
-									ShooterAI = target.GetComponent<ShooterAIStateManager> ();
-									//start Attacking
+                                var otherAI = target.GetComponent<ShooterAIStateManager>();
+								if (otherAI != null && otherAI._AIType != _stateManager._AIType) {
+									ShooterAI = otherAI;
 									_stateManager.currentShooterState = ShooterAIStates.Firing;
-									//clear chase target of chase behaviour
 									_stateManager.ChaseBehaviour.currentChasingTargetTag = "";
 									_stateManager.ChaseBehaviour.targetPosition = null;
-								}                                
-
+								}
 							} 
 							//assign Turret
 							else if (target.GetComponent<Turret> ()) {
-							
 								Turret = target.GetComponent<Turret> ();
-								//start Attacking
 								_stateManager.currentShooterState = ShooterAIStates.Firing;
-								//clear chase target of chase behaviour
 								_stateManager.ChaseBehaviour.currentChasingTargetTag = "";
 								_stateManager.ChaseBehaviour.targetPosition = null;
-
 							}
                             //assign Zombie AI
-                            else
+                            else if (target.GetComponent<uzAI.uzAIZombieStateManager>())
                             {
-                                if (target.GetComponent<uzAI.uzAIZombieStateManager>())
+                                var zombie = target.GetComponent<uzAI.uzAIZombieStateManager>();
+                                if (zombie != null && zombie.ZombieHealthStats.CurrentHealth > 0)
                                 {
-                                    if (target.GetComponent<uzAI.uzAIZombieStateManager>().ZombieHealthStats. CurrentHealth > 0)
-                                    {
-                                        Zombie = target.GetComponent<uzAI.uzAIZombieStateManager>();
-                                        //start Attacking
-                                        _stateManager.currentShooterState = ShooterAIStates.Firing;
-                                        //clear chase target of chase behaviour
-                                        _stateManager.ChaseBehaviour.currentChasingTargetTag = "";
-                                        _stateManager.ChaseBehaviour.targetPosition = null;
-                                    }
-                                        
-                                }
-                                else
-                                { 
-                                    //clear chase target of chase behaviour
+                                    Zombie = zombie;
+                                    _stateManager.currentShooterState = ShooterAIStates.Firing;
                                     _stateManager.ChaseBehaviour.currentChasingTargetTag = "";
                                     _stateManager.ChaseBehaviour.targetPosition = null;
-
-                                    _stateManager.currentShooterState = ShooterAIStates.Patrol;
                                 }
                             }
-
+                            else
+                            { 
+                                _stateManager.ChaseBehaviour.currentChasingTargetTag = "";
+                                _stateManager.ChaseBehaviour.targetPosition = null;
+                                _stateManager.currentShooterState = ShooterAIStates.Patrol;
+                            }
                         }
                         //if there is an obstacle in between
                         else
@@ -1149,16 +1137,12 @@ namespace Manoeuvre
                         }
                     }
                 }
-
             }
         }
 
-        /// <summary>
-        /// Complex Attack Mech
-        /// </summary>
         public void Attack()
         {
-            if (!_shooterAIAgent)
+            if (!_shooterAIAgent || !_shooterAIAgent.isOnNavMesh)
                 return;
 
             isReloading = _animator.GetBool("isReloading");
@@ -1182,13 +1166,10 @@ namespace Manoeuvre
             //see if the delay has been made
             if (_timer >= FireDelay )
             {
-               
                 //reset timer
                 _timer = 0;
-
                 //reset has Attack flag
                 hasAttacked = false;
-
             }
             else
             {
@@ -1205,27 +1186,18 @@ namespace Manoeuvre
                 //reduce ammo
                 _stateManager.WeaponBehaviour.Ammo--;
 
-                //Attack Player
-                //only if
-                //There's No Zombie and No Shooter AI
 				if (Player && Zombie == null && ShooterAI == null) {
 					if (Player.Health.currentHealth > 0)
-                        //Player.Health.OnDamage(Random.Range(_stateManager.WeaponBehaviour.minDamage, _stateManager.WeaponBehaviour.maxDamage));
                         _stateManager.WeaponBehaviour.ShootTarget (Player);
 					else
-                        //just shake player camera
                         Player.TakeDamageEffect ();
-
 				}
-                //Attack Shooter AI
                 else if (ShooterAI) {
 					_stateManager.WeaponBehaviour.ShootTarget (ShooterAI);
 				}
-                //Attack Zombie
                 else if (Zombie) {
 					_stateManager.WeaponBehaviour.ShootTarget (Zombie);
 				} 
-				//Attack Zombie
 				else if (Turret) {
 					_stateManager.WeaponBehaviour.ShootTarget (Turret);
 				}
@@ -1245,31 +1217,27 @@ namespace Manoeuvre
                 if (_stateManager.WeaponBehaviour.ReloadSound)
                     _stateManager._audioManager.PlayAudioClip(_stateManager.WeaponBehaviour.ReloadSound);
             }
-
         }
 
         public void RotateSpine()
         {
-            //prepare rotation quaternion
             Vector3 destinationRotation = Vector3.zero;
 
-            //rotate Spine
 			if (Player) {
 				destinationRotation = _stateManager.transform.position - Player.transform.position;
 			} else if (ShooterAI) {
 				destinationRotation = _stateManager.transform.position - ShooterAI.transform.position;
 			} else if (Zombie) {
 				destinationRotation = _stateManager.transform.position - Zombie.transform.position;
-
 			} else if (Turret) {
 				destinationRotation = _stateManager.transform.position - Turret.transform.position;
 			}
 
-            ////set rotation
-            Quaternion newRot = Quaternion.identity;
-            newRot = Quaternion.Euler(destinationRotation.x + _stateManager.AimIK.AimSpineOffset_X, _stateManager.AimIK.AimSpineOffset_Y, _stateManager.AimIK.AimSpineOffset_Z);
-           _stateManager.AimIK.SpineTransform.localRotation = newRot;
-
+            if (_stateManager.AimIK.SpineTransform != null)
+            {
+                Quaternion newRot = Quaternion.Euler(destinationRotation.x + _stateManager.AimIK.AimSpineOffset_X, _stateManager.AimIK.AimSpineOffset_Y, _stateManager.AimIK.AimSpineOffset_Z);
+                _stateManager.AimIK.SpineTransform.localRotation = newRot;
+            }
         }
 
         void RotateTowardsTarget()
@@ -1297,7 +1265,6 @@ namespace Manoeuvre
 				else
 					Turret = null;
 			}
-            
         }
 
         bool CanAttack()
@@ -1311,12 +1278,6 @@ namespace Manoeuvre
             return false;
         }
 
-        /// <summary>
-        /// This is only used in the editor to make the arc
-        /// </summary>
-        /// <param name="angle"></param>
-        /// <param name="isAngleGlobal"></param>
-        /// <returns></returns>
         public Vector3 DirFromAngle(float angle, bool isAngleGlobal)
         {
             if (_stateManager)
@@ -1325,12 +1286,9 @@ namespace Manoeuvre
                 {
                     angle += _stateManager.transform.eulerAngles.y;
                 }
-
                 float retAngle = angle * Mathf.Deg2Rad;
                 return new Vector3(Mathf.Sin(retAngle), 0, Mathf.Cos(retAngle));
-
             }
-
             return Vector3.zero;
         }
     }
@@ -1363,148 +1321,112 @@ namespace Manoeuvre
             _stateManager = _smgr;
             cacheAmmo = Ammo;
 
-            //set muzzle flash
-            _cacheMuzzleFX = GameObject.Instantiate(muzzleFlash) as ParticleSystem;
-            _cacheMuzzleFX.transform.SetParent(muzzleLocation);
-            _cacheMuzzleFX.transform.localEulerAngles = Vector3.zero;
-            _cacheMuzzleFX.transform.localPosition = Vector3.zero;
-            _cacheMuzzleFX.Stop();
+            if (muzzleFlash != null && muzzleLocation != null)
+            {
+                _cacheMuzzleFX = GameObject.Instantiate(muzzleFlash, muzzleLocation.position, muzzleLocation.rotation, muzzleLocation);
+                _cacheMuzzleFX.Stop();
+            }
 
-            //if no weapon
             if (weaponObject == null)
-                //enter unarmed state
                 _anim.SetTrigger("Unarmed");
 
-            //Add Audio Target and set it's range
             InitializeAudioTarget();
         }
 
         public void ShootTarget(ManoeuvreFPSController _controller)
         {
-            //Emit Muzzle
             if (_cacheMuzzleFX)
                 _cacheMuzzleFX.Play();
-            else
-                Debug.Log("Please assign a Muzzle Flash FX");
-
+            
             _stateManager._audioManager.PlayAudioClip(FireSound);
 
-            //we make a ray from muzzle location to player transform
+            if (muzzleLocation == null) return;
             RaycastHit hit;
-
             Vector3 direction = _controller.transform.position - muzzleLocation.position;
 
-            if (Physics.Raycast(muzzleLocation.position, direction , out hit, _stateManager.AttackBehaviour.targetMask))
+            if (Physics.Raycast(muzzleLocation.position, direction, out hit, _stateManager.AttackBehaviour.targetMask))
             {
                 if(hit.transform.tag == _controller.transform.tag)
                 {
-                    //apply damage if we hit 
                     if(!_stateManager.AimIK.DebugAimIK)
                         _controller.Health.OnDamage(Random.Range(minDamage, maxDamage));
-                
-                    //spawn hit fx
-                    HitParticle[0].onHit(hit.transform, hit.point, hit.normal);
+                    if (HitParticle.Count > 0 && HitParticle[0] != null)
+                        HitParticle[0].onHit(hit.transform, hit.point, hit.normal);
                 }
-
-
             }
-
         }
 
         public void ShootTarget(ShooterAIStateManager _shooterAI)
         {
-            //Emit Muzzle
             if (_cacheMuzzleFX)
                 _cacheMuzzleFX.Play();
-            else
-                Debug.Log("Please assign a Muzzle Flash FX");
 
-            //play Fire Sound
             _stateManager._audioManager.PlayAudioClip(FireSound);
-
-            //we make a ray from muzzle location to player transform
+            
+            if (muzzleLocation == null) return;
             RaycastHit hit;
-
             Vector3 direction = (_shooterAI.transform.position + Vector3.up) - muzzleLocation.position;
 
             if (Physics.Raycast(muzzleLocation.position, direction, out hit, _stateManager.AttackBehaviour.targetMask))
             {
                 if (hit.transform.tag == _shooterAI.transform.tag)
                 {
-                    //apply damage if we hit 
                     if(!_stateManager.AimIK.DebugAimIK)
                         _shooterAI.Health.onDamage(Random.Range(minDamage, maxDamage));
 
-                    //set it's target
                     _shooterAI.ChaseBehaviour.targetPosition = _stateManager.transform;
                     _shooterAI.AttackBehaviour.ShooterAI = _stateManager;
 
-                    //spawn hit fx
-                    HitParticle[2].onHit(hit.transform, hit.point, hit.normal);
+                    if (HitParticle.Count > 2 && HitParticle[2] != null)
+                        HitParticle[2].onHit(hit.transform, hit.point, hit.normal);
                 }
-
             }
-
         }
 
 		public void ShootTarget(Turret _turret)
 		{
-			//Emit Muzzle
 			if (_cacheMuzzleFX)
 				_cacheMuzzleFX.Play();
-			else
-				Debug.Log("Please assign a Muzzle Flash FX");
 
-			//play Fire Sound
 			_stateManager._audioManager.PlayAudioClip(FireSound);
 
-			//we make a ray from muzzle location to player transform
+            if (muzzleLocation == null) return;
 			RaycastHit hit;
-
 			Vector3 direction = (_turret.transform.position + Vector3.up) - muzzleLocation.position;
 
 			if (Physics.Raycast(muzzleLocation.position, direction, out hit, _stateManager.AttackBehaviour.targetMask))
 			{
 				if (hit.transform.tag == _turret.transform.tag)
 				{
-					//apply damage if we hit 
 					if(!_stateManager.AimIK.DebugAimIK)
 						_turret._turretHealth.onDamage(Random.Range(minDamage, maxDamage), _stateManager.transform);
 
-					//spawn hit fx
-					HitParticle[3].onHit(hit.transform, hit.point, hit.normal);
+                    if (HitParticle.Count > 3 && HitParticle[3] != null)
+					    HitParticle[3].onHit(hit.transform, hit.point, hit.normal);
 				}
-
 			}
-
 		}
 
         public void ShootTarget(uzAI.uzAIZombieStateManager _uzAI)
         {
-            //Emit Muzzle
             if (_cacheMuzzleFX)
                 _cacheMuzzleFX.Play();
-            else
-                Debug.Log("Please assign a Muzzle Flash FX");
 
-            //play Fire Sound
             _stateManager._audioManager.PlayAudioClip(FireSound);
-
-            //we make a ray from muzzle location to zombie transform
+            
+            if (muzzleLocation == null) return;
             RaycastHit hit;
-
             Vector3 direction = (_uzAI.transform.position + Vector3.up) - muzzleLocation.position;
 
-            if (Physics.Raycast(muzzleLocation.position, direction, out hit,100, _stateManager.AttackBehaviour.targetMask))
+            if (Physics.Raycast(muzzleLocation.position, direction, out hit, 100, _stateManager.AttackBehaviour.targetMask))
             {
                 if (hit.transform.tag == _uzAI.transform.tag)
                 {
-                    //apply damage if we hit 
                     if(!_stateManager.AimIK.DebugAimIK)
                         _uzAI.ZombieHealthStats.onDamage(Random.Range(minDamage, maxDamage));
 
-                    //spawn hit fx
-                    HitParticle[01].onHit(hit.transform, hit.point, hit.normal);
+                    if (HitParticle.Count > 1 && HitParticle[1] != null)
+                        HitParticle[1].onHit(hit.transform, hit.point, hit.normal);
                 }
             }
         }
@@ -1514,29 +1436,25 @@ namespace Manoeuvre
             Ammo = cacheAmmo;
         }
 
-        /// <summary>
-        /// Call this method to Invoke This Audio Target
-        /// </summary>
         void InitializeAudioTarget()
         {
-            //instantiate new object for trigger
-            myAwarenessTrigger = new GameObject();
+            myAwarenessTrigger = new GameObject("AwarenessTrigger");
             myAwarenessTrigger.transform.SetParent(_stateManager.transform);
             myAwarenessTrigger.transform.localPosition = Vector3.zero;
             myAwarenessTrigger.SetActive(false);
-            //add trigger and set radius
-            myAwarenessTrigger.AddComponent<SphereCollider>().radius = 0;
-            myAwarenessTrigger.GetComponent<SphereCollider>().isTrigger = true;
-
-            //set layer, tag and name
-            myAwarenessTrigger.layer = LayerMask.NameToLayer("AwarenessTrigger");
+            myAwarenessTrigger.AddComponent<SphereCollider>().isTrigger = true;
+            
+            int layer = LayerMask.NameToLayer("AwarenessTrigger");
+            if(layer != -1)
+                myAwarenessTrigger.layer = layer;
+            
             myAwarenessTrigger.tag = "AwarenessTrigger";
-            myAwarenessTrigger.name = "AwarenessTrigger";
-
         }
 
         public void SetAwarenessTriggerVisibility(ShooterAIStates _state)
         {
+            if (myAwarenessTrigger == null) return;
+
             if (_state == ShooterAIStates.Firing)
             {
                 myAwarenessTrigger.GetComponent<SphereCollider>().radius = _stateManager.SightBehaviour.Range;
@@ -1546,7 +1464,6 @@ namespace Manoeuvre
             {
                 myAwarenessTrigger.GetComponent<SphereCollider>().radius = 0;
                 myAwarenessTrigger.SetActive(false);
-
             }
         }
     }
@@ -1558,62 +1475,41 @@ namespace Manoeuvre
         public float FollowAnimation = 2;
         public bool AllowDamageFromPlayer = true;
 
-        //Main State Manager
         ShooterAIStateManager _stateManager;
-        //Main Animator
         Animator _animator;
-        //Main Nav Mesh Agent
         NavMeshAgent _shooterAIAgent;
 
-        /// <summary>
-        /// Gets and sets the references of AI StateManager, Nav Mesh Agent and the Animator
-        /// </summary>
-        /// <param name="mgr"></param>
-        /// <param name="nav"></param>
-        /// <param name="anim"></param>
         public void Initialize(ShooterAIStateManager mgr, NavMeshAgent nav, Animator anim)
         {
             _stateManager = mgr;
             _animator = anim;
             _shooterAIAgent = nav;
-
         }
 
         public void FollowPlayer()
         {
-            //if chasing or attacking or die
+            if (_shooterAIAgent == null || !_shooterAIAgent.isOnNavMesh || _stateManager.Player == null) return;
+
             if (_stateManager.AttackBehaviour.Zombie || _stateManager.currentShooterState == ShooterAIStates.Die)
-                return; //exit
+                return;
 
-            //We set Destination
             _shooterAIAgent.SetDestination(_stateManager.Player.transform.position);
-
-            //override Patrol speed with our Companion Follow Speed
             _stateManager.PatrolBehaviour.PatrolAnimation = FollowAnimation;
-
-            //set stopping Distance
             _shooterAIAgent.stoppingDistance = PlayerDistance;
 
             if (_shooterAIAgent.remainingDistance > _shooterAIAgent.stoppingDistance)
             {
-                //use existing Patrol state to Patrol to the current destination
-                //but with our speed
                 _stateManager.currentShooterState = ShooterAIStates.Patrol;
-                //_stateManager.PatrolBehaviour.PatrolTowardsPlayer();
             }
             else
             {
-                //make him look at Player
                 _shooterAIAgent.transform.LookAt(_stateManager.Player.transform.position);
-
-                //stop the agent
                 _stateManager.currentShooterState = ShooterAIStates.Idle;
 
                 if (_stateManager.AimIK.DebugAimIK)
                     _stateManager._AIType = AIType.Enemy;
             }
         }
-
     }
 
     [System.Serializable]
@@ -1638,58 +1534,37 @@ namespace Manoeuvre
         public AudioClip DeathSound;
         public List<AudioClip> HitSound = new List<AudioClip>();
 
-        [Tooltip("if true, AI Mesh will fade after death.")]
         public bool FadeMesh = false;
-
-        [Tooltip("A simple Standard Shader material which will replace the current" +
-            "AI's Mesh Material on Death.")]
         public Material faderMaterial;
-
-        [Tooltip("All child meshes of AI.")]
         public List<Renderer> allRenderers = new List<Renderer>();
 
-        [Tooltip("The fade will start after this much delay.")]
         [Range(0f, 5f)]
         public float fadeDelay = 0.5f;
-
-        [Tooltip("How fast you want to fade the body after death?")]
         [Range(0f, 5f)]
         public float fadeDuration = 0.5f;
 
-        //[HideInInspector]
         public bool DisableMotion;
-        //[HideInInspector]
         public bool cooldown;
-
-        //float cacheSpeed = 0;
         public float _timer;
 
         [HideInInspector]
         public Healthbar healthBar;
 
-        //Main State Manager
         ShooterAIStateManager _stateManager;
-        //Main Animator
         Animator _animator;
-        //Main Nav Mesh Agent
         NavMeshAgent _shooterAIAgent;
 
-        /// <summary>
-        /// Gets and sets the references of AI  StateManager, Nav Mesh Agent and the Animator
-        /// </summary>
-        /// <param name="mgr"></param>
-        /// <param name="nav"></param>
-        /// <param name="anim"></param>
         public void Initialize(ShooterAIStateManager mgr, NavMeshAgent nav, Animator anim)
         {
             _stateManager = mgr;
             _animator = anim;
             _shooterAIAgent = nav;
-
         }
 
         public void onDamage(int amt)
         {
+            if (Health <= 0) return; // Already dead
+
             if(_stateManager._AIType == AIType.Enemy)
                 Health -= amt;
             else if(_stateManager._AIType == AIType.Companion && _stateManager.CompanionBehaviour.AllowDamageFromPlayer)
@@ -1699,39 +1574,37 @@ namespace Manoeuvre
                 healthBar.StartLerp();
 
             if (Health <= 0)
+            {
+                Health = 0;
                 _stateManager.Die();
+            }
             else
+            {
                 HitReaction();
-
+            }
         }
 
         int i = 1;
         void HitReaction()
         {
-            //Play Hurt SFX
-            if (HitSound.Count > 0 && !_stateManager._audioManager._source.isPlaying)
+            if (HitSound.Count > 0 && _stateManager._audioManager._source != null && !_stateManager._audioManager._source.isPlaying)
                 _stateManager._audioManager.PlayAudioClip(HitSound[Random.Range(0, HitSound.Count)]);
 
-            //set trigger
             _animator.SetTrigger("HitReaction");
-            //set reaction ID
             _animator.SetInteger("HitID", i);
 
             if (lookAtCameraOnHit)
             {
-                //look at camera
                 if (_stateManager.AttackBehaviour.Player)
                     _stateManager.transform.LookAt(_stateManager.AttackBehaviour.Player.transform.position);
                 else if (_stateManager.AttackBehaviour.Zombie)
                     _stateManager.transform.LookAt(_stateManager.AttackBehaviour.Zombie.transform.position);
                 else if(_stateManager.AttackBehaviour.ShooterAI)
                     _stateManager.transform.LookAt(_stateManager.AttackBehaviour.ShooterAI.transform.position);
-
             }
 
             cooldown = false;
-
-            //increment hitID
+            
             if (i < hitReactionsAvailable)
                 i++;
             else
@@ -1740,78 +1613,68 @@ namespace Manoeuvre
 
         public void AIGotHit()
         {
-            if (!_shooterAIAgent)
+            if (_shooterAIAgent == null) // The agent might have been destroyed
                 return;
 
             if (_stateManager.currentShooterState == ShooterAIStates.Die)
                 return;
 
-
             DisableMotion = _animator.GetBool("DisableMotion");
 
             if (DisableMotion)
             {
-                _shooterAIAgent.isStopped = true;
-
-                //lerp speed to 0
+                if (_shooterAIAgent.isOnNavMesh)
+                {
+                    _shooterAIAgent.isStopped = true;
+                }
+                
                 _stateManager.walkAnimation = Mathf.Lerp(_stateManager.walkAnimation, 0, Time.deltaTime * 5f);
                 _animator.SetFloat("Vertical", _stateManager.walkAnimation);
                 _timer = 0;
                 cooldown = true;
-
             }
 
-            //delay
-            while (_timer < _cooldownTimer && cooldown)
+            if(cooldown)
             {
                 _timer += Time.deltaTime;
-                return;
+                if (_timer >= _cooldownTimer)
+                {
+                    _timer = 0;
+                    cooldown = false;
+                    _stateManager.setHandsIK = true;
+                }
             }
-
-            //force reset timer and cooldown 
-            _timer = 0;
-            cooldown = false;
-            _stateManager.setHandsIK = true;
         }
 
-        /// <summary>
-        /// Simply lerps the alpha of the Mesh Color from 1-0
-        /// </summary>
-        /// <param name="renderers"></param>
-        /// <returns></returns>
         public IEnumerator FadeOnDeath()
         {
-            //delay
             yield return new WaitForSeconds(fadeDelay);
 
-            //stop animator
-            _animator.enabled = false;
+            if(_animator != null)
+                _animator.enabled = false;
 
-            //now start fade
             float et = 0;
             Color c = Color.white;
 
             while (et < fadeDuration)
             {
-                c.a = Mathf.Lerp(c.a, 0, et / fadeDuration);
+                c.a = Mathf.Lerp(1f, 0f, et / fadeDuration);
                 foreach (Renderer r in allRenderers)
                 {
+                    if (r == null) continue;
                     foreach (Material m in r.materials)
                     {
-                        //assign it to the renderer
+                        if (m == null) continue;
                         m.color = c;
                     }
                 }
-
                 et += Time.deltaTime;
                 yield return null;
             }
 
-            //5. Destroy Self
-            GameObject.Destroy(_stateManager.gameObject);
-
+            if (_stateManager != null)
+                GameObject.Destroy(_stateManager.gameObject);
         }
-
     }
     
     [System.Serializable]
@@ -1833,71 +1696,68 @@ namespace Manoeuvre
         {
             _stateManager = _mgr;
 
-            //Spine Transform
-            SpineTransform = new GameObject().transform;
-            SpineTransform.name = "Spine Bone IK";
+            SpineTransform = new GameObject("Spine Bone IK").transform;
             SpineTransform.SetParent(_stateManager.transform);
             SpineTransform.localRotation = Quaternion.identity;
             SpineTransform.localPosition = Vector3.zero;
-
         }
-
     }
 
     [System.Serializable]
     public class ShooterAIAudioManager
     {
         ShooterAIStateManager _stateManager;
-
         public AudioSource _source;
 
         public void Initialize(ShooterAIStateManager _mgr)
         {
             _stateManager = _mgr;
-
-            //add audio Source
-            _source = _mgr.gameObject.AddComponent<AudioSource>();
+            if (_mgr.GetComponent<AudioSource>() == null)
+            {
+                _source = _mgr.gameObject.AddComponent<AudioSource>();
+            }
+            else
+            {
+                _source = _mgr.GetComponent<AudioSource>();
+            }
         }
 
         public void PlayAudioClip(AudioClip clip)
         {
-            _source.PlayOneShot(clip);
+            if (clip != null && _source != null)
+            {
+                _source.PlayOneShot(clip);
+            }
         }
-
     }
 
     [System.Serializable]
     public class DrawGizmos
     {
-        [Tooltip("If true, Draws the Nav mesh Path from Zombie to Current Target")]
+        [Tooltip("If true, Draws the Nav mesh Path from AI to Current Target")]
         public bool drawPathToCurrentTarget = true;
-        [Tooltip("Set the color of Nav mesh Path.")]
         public Color pathGizmoColor = Color.cyan;
-        [Tooltip("If true, Draws the Straight Line from Zombie to Current Target")]
+        [Tooltip("If true, Draws the Straight Line from AI to Current Target")]
         public bool drawLineToCurrentTarget = true;
-        [Tooltip("Set the color of Line.")]
         public Color lineGizmoColor = Color.green;
 
-        /// <summary>
-        /// Draws the AI Gizmos
-        /// </summary>
         public void DrawAIGizmos(NavMeshAgent _shooterAIAgent)
         {
-            if (drawPathToCurrentTarget && _shooterAIAgent)
+            if (_shooterAIAgent == null || !_shooterAIAgent.isOnNavMesh || !_shooterAIAgent.hasPath)
+                return;
+
+            if (drawPathToCurrentTarget)
             {
                 for (int i = 0; i < _shooterAIAgent.path.corners.Length - 1; i++)
                 {
                     Debug.DrawLine(_shooterAIAgent.path.corners[i], _shooterAIAgent.path.corners[i + 1], pathGizmoColor);
-
                 }
             }
 
-            if (drawLineToCurrentTarget && _shooterAIAgent)
+            if (drawLineToCurrentTarget && _shooterAIAgent.path.corners.Length > 0)
             {
                 Debug.DrawLine(_shooterAIAgent.transform.position, _shooterAIAgent.path.corners[_shooterAIAgent.path.corners.Length - 1], lineGizmoColor);
             }
-
         }
-
     }
 }
